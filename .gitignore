@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Data (不提交运行时数据)
+data/messages/*/
+data/status/*.json
+data/workspace/*.json
+
+# Keep structure
+!data/.gitkeep
+!data/messages/.gitkeep
+!data/status/.gitkeep
+!data/workspace/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
