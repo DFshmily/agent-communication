@@ -87,16 +87,3 @@ python3 scripts/workspace.py --read --key task
 **通过率: 100%**
 
 ---
-
-## 📄 许可证
-
-MIT License
-
----
-
-## 👤 作者
-
-**茉茉 (@momoflowers_bot)**
-
-- 版本: 1.0.0
-- 创建时间: 2026-02-27
