@@ -1,58 +1,60 @@
 #!/usr/bin/env python3
 """
-Agent消息发送工具
-用法: python3 send.py --to <agent_id> --message <message>
+发送消息 - 兼容文件方案和 WebSocket 方案
+优先使用 WebSocket，失败时回退到文件方案
 """
 
 import argparse
 import json
-import os
-import time
-import uuid
+import asyncio
+import sys
 from datetime import datetime
 from pathlib import Path
+
+try:
+    import websockets
+    HAS_WEBSOCKET = True
+except ImportError:
+    HAS_WEBSOCKET = False
 
 # 配置
 SKILL_DIR = Path(__file__).parent.parent
 DATA_DIR = SKILL_DIR / "data"
 MESSAGES_DIR = DATA_DIR / "messages"
-CONFIG_FILE = SKILL_DIR / "templates" / "config.json"
+WEBSOCKET_SERVER = "ws://localhost:8765"
 
-def load_config():
-    """加载配置"""
-    if CONFIG_FILE.exists():
-        with open(CONFIG_FILE) as f:
-            return json.load(f)
-    return {
-        "workspace": str(DATA_DIR),
-        "timeout": 300,
-        "retry": 3,
-        "agents": ["pm", "dev", "test", "main"]
-    }
+async def send_via_websocket(from_agent: str, to: str, message: str, priority: str = "normal") -> dict:
+    """通过 WebSocket 发送"""
+    if not HAS_WEBSOCKET:
+        return {"success": False, "error": "websockets not installed"}
+    
+    try:
+        async with websockets.connect(WEBSOCKET_SERVER, close_timeout=1) as ws:
+            await ws.send(json.dumps({
+                "type": "send",
+                "from": from_agent,
+                "to": to,
+                "message": message,
+                "priority": priority
+            }))
+            
+            response = await asyncio.wait_for(ws.recv(), timeout=5)
+            return json.loads(response)
+    
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
-def send_message(to: str, message: str, priority: str = "normal", from_agent: str = "main") -> dict:
-    """
-    发送消息给指定Agent
+def send_via_file(from_agent: str, to: str, message: str, priority: str = "normal") -> dict:
+    """通过文件发送（回退方案）"""
+    import uuid
     
-    Args:
-        to: 目标Agent ID
-        message: 消息内容
-        priority: 优先级 (urgent, high, normal, low)
-        from_agent: 发送者Agent ID
-    
-    Returns:
-        发送结果
-    """
-    # 确保目录存在
     MESSAGES_DIR.mkdir(parents=True, exist_ok=True)
     
-    # 生成消息ID
     msg_id = f"msg_{uuid.uuid4().hex[:12]}"
     
-    # 构建消息
     msg_data = {
         "id": msg_id,
-        "from": from_agent,  # 发送者Agent
+        "from": from_agent,
         "to": to,
         "message": message,
         "priority": priority,
@@ -61,7 +63,6 @@ def send_message(to: str, message: str, priority: str = "normal", from_agent: st
         "read": False
     }
     
-    # 写入目标Agent的inbox
     inbox_dir = MESSAGES_DIR / to / "inbox"
     inbox_dir.mkdir(parents=True, exist_ok=True)
     
@@ -73,21 +74,45 @@ def send_message(to: str, message: str, priority: str = "normal", from_agent: st
         "success": True,
         "message_id": msg_id,
         "to": to,
-        "timestamp": msg_data["timestamp"]
+        "timestamp": msg_data["timestamp"],
+        "method": "file"
     }
 
+def send_message(from_agent: str, to: str, message: str, priority: str = "normal", prefer_websocket: bool = True) -> dict:
+    """发送消息（智能选择方式）"""
+    
+    if prefer_websocket and HAS_WEBSOCKET:
+        # 尝试 WebSocket
+        try:
+            result = asyncio.run(send_via_websocket(from_agent, to, message, priority))
+            if result.get("success"):
+                result["method"] = "websocket"
+                return result
+        except:
+            pass
+    
+    # 回退到文件方案
+    return send_via_file(from_agent, to, message, priority)
+
 def main():
-    parser = argparse.ArgumentParser(description="Agent消息发送工具")
-    parser.add_argument("--to", required=True, help="目标Agent ID")
+    parser = argparse.ArgumentParser(description="Agent 消息发送工具")
+    parser.add_argument("--to", required=True, help="目标 Agent ID")
     parser.add_argument("--message", required=True, help="消息内容")
-    parser.add_argument("--from", dest="from_agent", default="main", help="发送者Agent ID")
-    parser.add_argument("--priority", default="normal", 
+    parser.add_argument("--from", dest="from_agent", default="main", help="发送者 Agent ID")
+    parser.add_argument("--priority", default="normal",
                        choices=["urgent", "high", "normal", "low"],
                        help="消息优先级")
+    parser.add_argument("--file", action="store_true", help="强制使用文件方案")
     
     args = parser.parse_args()
     
-    result = send_message(args.to, args.message, args.priority, args.from_agent)
+    result = send_message(
+        args.from_agent,
+        args.to,
+        args.message,
+        args.priority,
+        prefer_websocket=not args.file
+    )
     
     print(json.dumps(result, indent=2, ensure_ascii=False))
 

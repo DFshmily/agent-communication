@@ -1,47 +1,23 @@
 {
   "name": "agent-communication",
-  "version": "1.0.0",
-  "description": "通用Agent间沟通技能，解决多Agent团队协作中的沟通问题",
+  "version": "2.0.0",
+  "description": "基于 WebSocket 的 Agent 实时通信技能",
   "author": "momoflowers_bot",
-  "license": "MIT",
-  "keywords": ["agent", "communication", "collaboration", "messaging"],
-  "repository": "",
-  "main": "scripts/send.py",
-  "scripts": {
-    "send": "scripts/send.py",
-    "broadcast": "scripts/broadcast.py",
-    "status": "scripts/status.py",
-    "workspace": "scripts/workspace.py",
-    "test": "scripts/test_skill.py"
-  },
-  "dependencies": {
-    "python": ">=3.8"
-  },
-  "engines": {
-    "openclaw": ">=1.0.0"
-  },
+  "keywords": ["agent", "communication", "websocket", "realtime"],
   "features": [
-    "消息传递 - Agent之间快速发送消息",
-    "广播消息 - 一次发送给多个Agent",
-    "共享工作空间 - 文件驱动的协作",
-    "状态同步 - Agent在线状态检测"
+    "WebSocket 实时通信",
+    "消息传递",
+    "广播消息",
+    "共享工作空间",
+    "状态同步",
+    "离线消息队列"
   ],
-  "solves": [
-    "sessions_send 超时问题",
-    "Agent之间无法直接沟通",
-    "团队协作效率低"
-  ],
-  "performance": {
-    "message_latency": "<500ms",
-    "timeout_reduction": "90%",
-    "collaboration_improvement": "3x"
+  "requirements": {
+    "python": ">=3.8",
+    "websockets": ">=10.0"
   },
-  "tested": true,
-  "test_results": {
-    "send_message": "pass",
-    "broadcast": "pass",
-    "bidirectional": "pass",
-    "status_sync": "pass",
-    "workspace": "pass"
+  "performance": {
+    "latency": "<50ms",
+    "method": "websocket"
   }
 }
