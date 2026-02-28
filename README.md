@@ -247,9 +247,3 @@ agent-communication/
 - 文件驱动消息队列
 
 ---
-
-<div align="center">
-
-**Made with ❤️ for OpenClaw Agents**
-
-</div>
